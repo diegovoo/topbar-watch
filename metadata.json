@@ -1,0 +1,6 @@
+{
+  "uuid": "topbar-watch@diegovoo.github.io",
+  "name": "Topbar Watch",
+  "description": "Configurable top-bar text from watched status files",
+  "shell-version": ["46"]
+}

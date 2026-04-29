@@ -1,0 +1,16 @@
+[
+  {
+    "id": "build-status",
+    "path": "$XDG_RUNTIME_DIR/topbar-watch/build-status.txt",
+    "separator": "| ",
+    "marginLeft": 8,
+    "marginRight": 8
+  },
+  {
+    "id": "sync-status",
+    "path": "$XDG_RUNTIME_DIR/topbar-watch/sync-status.txt",
+    "separator": "| ",
+    "marginLeft": 0,
+    "marginRight": 8
+  }
+]

@@ -1,0 +1,21 @@
+.DS_Store
+Thumbs.db
+
+# Editor files
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Local GNOME extension packages and generated archives
+*.zip
+*.tar.gz
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Local user config should not be committed if copied into the repo
+.config/
