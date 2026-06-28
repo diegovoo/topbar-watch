@@ -6,7 +6,7 @@ It is useful for lightweight status output from scripts, sync tools, build jobs,
 
 ## Showcase
 
-<video src="screenshots/demo.mp4" controls></video>
+https://github.com/user-attachments/assets/34a73ce3-984d-4c52-b50e-2c63dcfe13d5
 
 ![Default top-bar layout](screenshots/default_topbar-watch.png)
 
