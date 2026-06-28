@@ -261,8 +261,8 @@ export default class TopbarWatchExtension extends Extension {
 
         try {
             GLib.mkdir_with_parents(dir, 0o700);
-        } catch (e) {
-            console.error(`[${this.metadata.name}] Failed to create directory ${dir}: ${e}`);
+        } catch {
+            return null;
         }
 
         const dirFile = Gio.File.new_for_path(dir);
@@ -271,8 +271,7 @@ export default class TopbarWatchExtension extends Extension {
 
         try {
             monitor = dirFile.monitor_directory(Gio.FileMonitorFlags.NONE, null);
-        } catch (e) {
-            console.error(`[${this.metadata.name}] Failed to monitor directory ${dir}: ${e}`);
+        } catch {
             return null;
         }
 
@@ -338,7 +337,7 @@ export default class TopbarWatchExtension extends Extension {
                     }
 
                     resolve(new TextDecoder().decode(contents).trim());
-                } catch (e) {
+                } catch {
                     resolve(null);
                 }
             });
@@ -357,15 +356,11 @@ export default class TopbarWatchExtension extends Extension {
         try {
             const config = JSON.parse(contents);
 
-            if (!config || typeof config !== 'object' || Array.isArray(config)) {
-                console.error(`[${this.metadata.name}] ${CONFIG_FILE} must contain a JSON object`);
+            if (!config || typeof config !== 'object' || Array.isArray(config))
                 return this._createDefaultConfig();
-            }
 
-            if (!Array.isArray(config.items)) {
-                console.error(`[${this.metadata.name}] ${CONFIG_FILE} must contain an items array`);
+            if (!Array.isArray(config.items))
                 return this._createDefaultConfig();
-            }
 
             return {
                 separatorStyle: this._isKnownSeparatorStyle(config.separatorStyle)
@@ -382,27 +377,20 @@ export default class TopbarWatchExtension extends Extension {
                     : DEFAULT_TRAILING_SEPARATOR,
                 items: config.items.filter(item => this._isValidStatusItem(item)),
             };
-        } catch (e) {
-            console.error(`[${this.metadata.name}] Failed to parse ${CONFIG_FILE}: ${e}`);
+        } catch {
             return this._createDefaultConfig();
         }
     }
 
     _isValidStatusItem(item) {
-        if (!item || typeof item !== 'object') {
-            console.error(`[${this.metadata.name}] ${CONFIG_FILE} entries must be objects`);
+        if (!item || typeof item !== 'object')
             return false;
-        }
 
-        if (typeof item.id !== 'string' || item.id.length === 0) {
-            console.error(`[${this.metadata.name}] ${CONFIG_FILE} entries need a non-empty string id`);
+        if (typeof item.id !== 'string' || item.id.length === 0)
             return false;
-        }
 
-        if (typeof item.path !== 'string' || item.path.length === 0) {
-            console.error(`[${this.metadata.name}] ${CONFIG_FILE} entry ${item.id} needs a non-empty string path`);
+        if (typeof item.path !== 'string' || item.path.length === 0)
             return false;
-        }
 
         return true;
     }

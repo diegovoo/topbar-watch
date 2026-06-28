@@ -19,3 +19,4 @@ temp/
 
 # Local user config should not be committed if copied into the repo
 .config/
+.venv/
