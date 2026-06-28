@@ -4,10 +4,30 @@ Topbar Watch is a small GNOME Shell extension that shows text from watched files
 
 It is useful for lightweight status output from scripts, sync tools, build jobs, timers, or any process that can write a short line of text to a file.
 
+## Showcase
+
+<video src="screenshots/demo.mp4" controls></video>
+
+![Default top-bar layout](screenshots/default_topbar-watch.png)
+
+![Pipe separator layout](screenshots/pipe_topbar-watch.png)
+
+![Works with other top-bar items](screenshots/workswithothers_topbar-watch.png)
+
 ## Features
 
 - Shows one or more status items in the GNOME top bar.
 - Watches files and updates automatically when their contents change.
+
+## What I use it for
+
+I use Topbar Watch as a quiet status strip for things I want to notice without
+opening another app:
+
+- the current power profile;
+- OneDrive daemon status, so it shows me when an error has occured
+- Syncthing status, so I can see whether notes edited on my tablet are up to
+  date and how many devices are currently connected.
 
 ## Configuration
 
@@ -17,8 +37,13 @@ Each status item has:
 
 - `ID`: a unique name for the item.
 - `Watched file path`: the text file the extension should display.
-- `Separator`: text shown before the item.
-- `Left margin` and `Right margin`: spacing around the item in pixels.
+
+Appearance is configured globally:
+
+- `Separator style`: none, dot, pipe, slash, or bullet.
+- `Spacing`: compact (4px), balanced (8px), or roomy (14px).
+- `Leading separator`: show the separator before the first visible item.
+- `Trailing separator`: show the separator after the last visible item.
 
 User settings are saved to:
 
@@ -43,17 +68,23 @@ Clear the item from the top bar:
 printf "" > "$XDG_RUNTIME_DIR/topbar-watch/build-status.txt"
 ```
 
-## Manual Install
+## Install locally
 
-Clone or copy this repository to your local GNOME Shell extensions directory:
+Copy or clone this repository to:
 
-```bash
-mkdir -p ~/.local/share/gnome-shell/extensions
-cp -r topbar-watch ~/.local/share/gnome-shell/extensions/topbar-watch@diegovoo.github.io
+```text
+~/.local/share/gnome-shell/extensions/topbar-watch@diegovoo.github.io
 ```
 
-Then reload GNOME Shell or log out and back in, and enable the extension:
+Then enable it:
 
-```bash
+```sh
 gnome-extensions enable topbar-watch@diegovoo.github.io
 ```
+
+If a newly added local extension doesn't show up, log out and back in, or
+restart GNOME Shell on X11.
+
+## License
+
+MIT. See `LICENSE`.
