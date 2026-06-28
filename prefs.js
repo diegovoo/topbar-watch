@@ -91,6 +91,38 @@ class TopbarWatchPreferencesPage {
             subtitle: item.path || '',
         });
 
+        const moveUpButton = new Gtk.Button({
+            icon_name: 'go-up-symbolic',
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Move up',
+            css_classes: ['flat'],
+            sensitive: index > 0,
+        });
+        moveUpButton.connect('clicked', () => {
+            const temp = this._items[index - 1];
+            this._items[index - 1] = this._items[index];
+            this._items[index] = temp;
+            this._save();
+            this._refreshRows();
+        });
+        row.add_suffix(moveUpButton);
+
+        const moveDownButton = new Gtk.Button({
+            icon_name: 'go-down-symbolic',
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Move down',
+            css_classes: ['flat'],
+            sensitive: index < this._items.length - 1,
+        });
+        moveDownButton.connect('clicked', () => {
+            const temp = this._items[index + 1];
+            this._items[index + 1] = this._items[index];
+            this._items[index] = temp;
+            this._save();
+            this._refreshRows();
+        });
+        row.add_suffix(moveDownButton);
+
         const removeButton = new Gtk.Button({
             icon_name: 'user-trash-symbolic',
             valign: Gtk.Align.CENTER,
