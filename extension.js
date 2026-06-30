@@ -46,8 +46,14 @@ export default class TopbarWatchExtension extends Extension {
             trailingSeparator: DEFAULT_TRAILING_SEPARATOR,
         };
         this._runtimeDir = GLib.getenv('XDG_RUNTIME_DIR') || GLib.get_user_runtime_dir();
-        this._defaultConfigPath = this._getExtensionFilePath(CONFIG_FILE);
-        this._configPath = this._getUserConfigPath();
+        this._defaultConfigPath = this.dir
+            ? this.dir.get_child(CONFIG_FILE).get_path()
+            : GLib.build_filenamev([this.path, CONFIG_FILE]);
+        this._configPath = GLib.build_filenamev([
+            GLib.get_user_config_dir(),
+            CONFIG_DIR,
+            CONFIG_FILE,
+        ]);
 
         this._indicator = new PanelMenu.Button(0.0, this.metadata.name, false);
         this._indicator.set_style('padding-left: 0px; padding-right: 0px;');
@@ -65,7 +71,10 @@ export default class TopbarWatchExtension extends Extension {
 
         Main.panel.addToStatusArea(this.uuid, this._indicator, 2, 'left');
 
-        this._watchConfig();
+        this._configMonitor = this._watchFile(
+            this._configPath,
+            () => this._reloadStatusItems()
+        );
         this._reloadStatusItems();
     }
 
@@ -100,13 +109,6 @@ export default class TopbarWatchExtension extends Extension {
         this._configPath = null;
     }
 
-    _watchConfig() {
-        this._configMonitor = this._watchFile(
-            this._configPath,
-            () => this._reloadStatusItems()
-        );
-    }
-
     _reloadStatusItems() {
         const serial = ++this._reloadConfigSerial;
 
@@ -132,14 +134,14 @@ export default class TopbarWatchExtension extends Extension {
         const path = this._expandPath(definition.path);
         const container = new St.BoxLayout({
             y_align: Clutter.ActorAlign.CENTER,
-            style: this._buildItemStyle(false),
+            style: 'margin-left: 0px;',
         });
         const separator = new St.Label({
             text: '',
             y_align: Clutter.ActorAlign.CENTER,
         });
         const separatorSpacer = new St.Widget({
-            style: this._buildSpacerStyle(false),
+            style: 'width: 0px;',
         });
         const label = new St.Label({
             text: '',
@@ -148,7 +150,7 @@ export default class TopbarWatchExtension extends Extension {
         });
         label.clutter_text.set_ellipsize(Pango.EllipsizeMode.END);
         const trailingSeparatorSpacer = new St.Widget({
-            style: this._buildSpacerStyle(false),
+            style: 'width: 0px;',
         });
         const trailingSeparator = new St.Label({
             text: '',
@@ -238,6 +240,8 @@ export default class TopbarWatchExtension extends Extension {
     _updateVisibleItemSpacing() {
         const visibleItems = Array.from(this._items.values())
             .filter(item => item.container.visible);
+        const separatorText = SEPARATOR_STYLES[this._appearance.separatorStyle];
+        const spacing = SPACING_PRESETS[this._appearance.spacing];
 
         visibleItems.forEach((item, index) => {
             const isFirstVisibleItem = index === 0;
@@ -248,23 +252,22 @@ export default class TopbarWatchExtension extends Extension {
             const hasTrailingSeparator =
                 this._appearance.trailingSeparator && isLastVisibleItem;
 
-            item.separator.text = hasLeadingSeparator ? this._getSeparatorText() : '';
-            item.trailingSeparator.text = hasTrailingSeparator ? this._getSeparatorText() : '';
-            item.container.set_style(this._buildItemStyle(hasPreviousVisibleItem));
-            item.separatorSpacer.set_style(this._buildSpacerStyle(hasLeadingSeparator));
-            item.trailingSeparatorSpacer.set_style(this._buildSpacerStyle(hasTrailingSeparator));
+            item.separator.text = hasLeadingSeparator ? separatorText : '';
+            item.trailingSeparator.text = hasTrailingSeparator ? separatorText : '';
+            item.container.set_style(
+                hasPreviousVisibleItem ? `margin-left: ${spacing}px;` : 'margin-left: 0px;'
+            );
+            item.separatorSpacer.set_style(`width: ${hasLeadingSeparator ? spacing : 0}px;`);
+            item.trailingSeparatorSpacer.set_style(
+                `width: ${hasTrailingSeparator ? spacing : 0}px;`
+            );
         });
     }
 
     _watchFile(path, reloadCallback) {
         const dir = GLib.path_get_dirname(path);
 
-        try {
-            GLib.mkdir_with_parents(dir, 0o700);
-        } catch {
-            return null;
-        }
-
+        GLib.mkdir_with_parents(dir, 0o700);
         const dirFile = Gio.File.new_for_path(dir);
 
         let monitor;
@@ -363,10 +366,10 @@ export default class TopbarWatchExtension extends Extension {
                 return this._createDefaultConfig();
 
             return {
-                separatorStyle: this._isKnownSeparatorStyle(config.separatorStyle)
+                separatorStyle: Object.hasOwn(SEPARATOR_STYLES, config.separatorStyle)
                     ? config.separatorStyle
                     : DEFAULT_SEPARATOR_STYLE,
-                spacing: this._isKnownSpacing(config.spacing)
+                spacing: Object.hasOwn(SPACING_PRESETS, config.spacing)
                     ? config.spacing
                     : DEFAULT_SPACING,
                 leadingSeparator: typeof config.leadingSeparator === 'boolean'
@@ -375,40 +378,18 @@ export default class TopbarWatchExtension extends Extension {
                 trailingSeparator: typeof config.trailingSeparator === 'boolean'
                     ? config.trailingSeparator
                     : DEFAULT_TRAILING_SEPARATOR,
-                items: config.items.filter(item => this._isValidStatusItem(item)),
+                items: config.items.filter(item =>
+                    item &&
+                    typeof item === 'object' &&
+                    typeof item.id === 'string' &&
+                    item.id.length > 0 &&
+                    typeof item.path === 'string' &&
+                    item.path.length > 0
+                ),
             };
         } catch {
             return this._createDefaultConfig();
         }
-    }
-
-    _isValidStatusItem(item) {
-        if (!item || typeof item !== 'object')
-            return false;
-
-        if (typeof item.id !== 'string' || item.id.length === 0)
-            return false;
-
-        if (typeof item.path !== 'string' || item.path.length === 0)
-            return false;
-
-        return true;
-    }
-
-    _buildItemStyle(hasPreviousVisibleItem) {
-        if (!hasPreviousVisibleItem)
-            return 'margin-left: 0px;';
-
-        return `margin-left: ${SPACING_PRESETS[this._appearance.spacing]}px;`;
-    }
-
-    _buildSpacerStyle(visible) {
-        const width = visible ? SPACING_PRESETS[this._appearance.spacing] : 0;
-        return `width: ${width}px;`;
-    }
-
-    _getSeparatorText() {
-        return SEPARATOR_STYLES[this._appearance.separatorStyle];
     }
 
     _createDefaultConfig() {
@@ -419,14 +400,6 @@ export default class TopbarWatchExtension extends Extension {
             trailingSeparator: DEFAULT_TRAILING_SEPARATOR,
             items: [],
         };
-    }
-
-    _isKnownSeparatorStyle(value) {
-        return Object.hasOwn(SEPARATOR_STYLES, value);
-    }
-
-    _isKnownSpacing(value) {
-        return Object.hasOwn(SPACING_PRESETS, value);
     }
 
     _expandPath(path) {
@@ -440,20 +413,5 @@ export default class TopbarWatchExtension extends Extension {
             expanded = GLib.build_filenamev([GLib.get_home_dir(), expanded.slice(2)]);
 
         return expanded;
-    }
-
-    _getExtensionFilePath(filename) {
-        if (this.dir)
-            return this.dir.get_child(filename).get_path();
-
-        return GLib.build_filenamev([this.path, filename]);
-    }
-
-    _getUserConfigPath() {
-        return GLib.build_filenamev([
-            GLib.get_user_config_dir(),
-            CONFIG_DIR,
-            CONFIG_FILE,
-        ]);
     }
 }

@@ -45,7 +45,9 @@ class TopbarWatchPreferencesPage {
         });
 
         this._extension = extension;
-        this._defaultConfigPath = this._getExtensionFilePath(CONFIG_FILE);
+        this._defaultConfigPath = this._extension.dir
+            ? this._extension.dir.get_child(CONFIG_FILE).get_path()
+            : GLib.build_filenamev([this._extension.path, CONFIG_FILE]);
         this._configPath = GLib.build_filenamev([
             GLib.get_user_config_dir(),
             CONFIG_DIR,
@@ -252,15 +254,13 @@ class TopbarWatchPreferencesPage {
         if (!this._previewRow)
             return;
 
-        const separator = this._getOption(
-            SEPARATOR_STYLES,
-            this._config.separatorStyle,
-            DEFAULT_SEPARATOR_STYLE
+        const separator = (
+            SEPARATOR_STYLES.find(option => option.id === this._config.separatorStyle) ??
+            SEPARATOR_STYLES.find(option => option.id === DEFAULT_SEPARATOR_STYLE)
         ).text;
-        const gap = this._getOption(
-            SPACING_PRESETS,
-            this._config.spacing,
-            DEFAULT_SPACING
+        const gap = (
+            SPACING_PRESETS.find(option => option.id === this._config.spacing) ??
+            SPACING_PRESETS.find(option => option.id === DEFAULT_SPACING)
         ).previewGap;
 
         const visibleTexts = this._items
@@ -353,7 +353,10 @@ class TopbarWatchPreferencesPage {
         this._save();
         this._refreshRows();
         this._updatePreview();
-        this._syncAppearanceRows();
+        this._separatorRow.selected = Math.max(0, SEPARATOR_STYLES.findIndex(
+            option => option.id === this._config.separatorStyle));
+        this._spacingRow.selected = Math.max(0, SPACING_PRESETS.findIndex(
+            option => option.id === this._config.spacing));
     }
 
     _loadConfig(path = this._configPath) {
@@ -368,10 +371,11 @@ class TopbarWatchPreferencesPage {
             if (!config || typeof config !== 'object' || Array.isArray(config))
                 return this._createDefaultConfig();
 
-            const separatorStyle = this._hasOption(SEPARATOR_STYLES, config.separatorStyle)
+            const separatorStyle = SEPARATOR_STYLES.some(
+                option => option.id === config.separatorStyle)
                 ? config.separatorStyle
                 : DEFAULT_SEPARATOR_STYLE;
-            const spacing = this._hasOption(SPACING_PRESETS, config.spacing)
+            const spacing = SPACING_PRESETS.some(option => option.id === config.spacing)
                 ? config.spacing
                 : DEFAULT_SPACING;
             const leadingSeparator = typeof config.leadingSeparator === 'boolean'
@@ -403,8 +407,9 @@ class TopbarWatchPreferencesPage {
     _save() {
         const dir = GLib.path_get_dirname(this._configPath);
 
+        GLib.mkdir_with_parents(dir, 0o700);
+
         try {
-            GLib.mkdir_with_parents(dir, 0o700);
             const file = Gio.File.new_for_path(this._configPath);
             file.replace_contents(
                 JSON.stringify(this._config, null, 2),
@@ -427,7 +432,7 @@ class TopbarWatchPreferencesPage {
                 return null;
 
             return new TextDecoder().decode(contents).trim();
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -456,26 +461,4 @@ class TopbarWatchPreferencesPage {
         };
     }
 
-    _hasOption(options, id) {
-        return options.some(option => option.id === id);
-    }
-
-    _getOption(options, id, fallback) {
-        return options.find(option => option.id === id) ??
-            options.find(option => option.id === fallback);
-    }
-
-    _syncAppearanceRows() {
-        this._separatorRow.selected = Math.max(0, SEPARATOR_STYLES.findIndex(
-            option => option.id === this._config.separatorStyle));
-        this._spacingRow.selected = Math.max(0, SPACING_PRESETS.findIndex(
-            option => option.id === this._config.spacing));
-    }
-
-    _getExtensionFilePath(filename) {
-        if (this._extension.dir)
-            return this._extension.dir.get_child(filename).get_path();
-
-        return GLib.build_filenamev([this._extension.path, filename]);
-    }
 }
